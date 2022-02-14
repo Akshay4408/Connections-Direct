@@ -1,0 +1,239 @@
+#!/usr/bin/env python
+# coding: utf-8
+
+# In[89]:
+
+
+import pandas as pd
+import numpy as np
+
+
+# In[90]:
+
+
+
+#Export Data
+export = pd.read_excel(r"C:\Users\data anylitics\Desktop\ADANI\Lead Campaign RDX\Overall Export of RDX.xlsx")
+#export = export[['call_date', 'phone_number_dialed', 'full_name', 'status_name', 'Disposition', 'BDD']]
+export.head()
+
+
+# In[91]:
+
+
+
+#Client Data
+client = pd.read_excel(r"C:\Users\data anylitics\Desktop\ADANI\Lead Campaign RDX\client data\client.xlsx")
+client.head()
+
+
+# In[92]:
+
+
+export["status_name"].fillna("Ringing", inplace = True)
+
+
+# In[93]:
+
+
+export.head()
+
+
+# In[94]:
+
+
+
+
+export = export.sort_values("BDD", ascending=True)
+
+export.head()
+
+
+
+# In[95]:
+
+
+
+
+
+export1 = export.drop_duplicates(
+  subset = ['phone_number_dialed'],
+  keep = 'first').reset_index(drop = True)
+
+
+export1.head()
+
+
+# In[96]:
+
+
+export1 = export1.rename(columns = {'phone_number_dialed' : 'MobileNo'})
+
+
+# In[97]:
+
+
+
+
+Result =  pd.merge(client ,export1, how = 'left', on = "MobileNo")
+Result.head()
+
+
+# In[98]:
+
+
+
+
+Result["Disposition"].fillna("No Dial", inplace = True)
+Result["status_name"].fillna("No Dial", inplace = True)
+
+
+
+# In[99]:
+
+
+
+StatusCount= pd.pivot_table(data = Result, index = ['Disposition'], values = 'status_name', aggfunc = np.size, fill_value= 0,margins = True, margins_name = 'Total' )
+
+StatusCount['Avg%'] = StatusCount['status_name'] / 2483
+StatusCount['Avg%'] = pd.Series(["{0:.2f}%".format(val * 100) for val in StatusCount['Avg%']], index = StatusCount.index)
+
+StatusCount = StatusCount.rename(columns = {'status_name' : 'Count'})
+
+
+
+StatusCount
+
+
+# In[ ]:
+
+
+
+
+
+# In[100]:
+
+
+# Connect
+
+
+
+connect = Result.loc[Result['Disposition'] == "Connect"]
+
+
+Notconnect = Result.loc[Result['Disposition'] == "Not Connected"]
+
+
+# In[101]:
+
+
+connect1= pd.pivot_table(data = connect, index = ['Disposition', 'status_name'], values = 'MobileNo', aggfunc = np.size, fill_value= 0,margins = True, margins_name = 'Total' )
+connect1 = connect1.rename(columns = {'MobileNo': 'Count'})
+
+
+connect1['Avg%'] = connect1['Count'] / 1787
+connect1['Avg%'] = pd.Series(["{0:.2f}%".format(val * 100) for val in connect1['Avg%']], index = connect1.index)
+
+
+connect1
+
+
+# In[102]:
+
+
+
+
+Notconnect2= pd.pivot_table(data = Notconnect, index = ['Disposition', 'status_name'], values = 'MobileNo', aggfunc = np.size, fill_value= 0,margins = True, margins_name = 'Total' )
+Notconnect2 = Notconnect2.rename(columns = {'MobileNo': 'Count'})
+
+
+Notconnect2['Avg%'] = Notconnect2['Count'] / 647
+Notconnect2['Avg%'] = pd.Series(["{0:.2f}%".format(val * 100) for val in Notconnect2['Avg%']], index = Notconnect2.index)
+
+
+Notconnect2
+
+
+# In[103]:
+
+
+connect.head()
+
+
+# In[104]:
+
+
+done = connect.loc[connect['status_name'] == "Confirmed_Lead _ QEC_Done"]
+done["full_name"].fillna("Shrishaila_H", inplace = True)
+
+done.head()
+
+
+# In[105]:
+
+
+done = pd.pivot_table(data = done, index = ['full_name'], values = 'status_name', aggfunc = np.size, fill_value= 0,margins = True, margins_name = 'Total' )
+
+done['Avg%'] = done['status_name'] / 104
+done = done.rename(columns = {'status_name': 'Lead_Confirmed'})
+
+done['Avg%'] = pd.Series(["{0:.2f}%".format(val * 100) for val in done['Avg%']], index = done.index)
+
+done
+
+
+# In[106]:
+
+
+Confirm = connect.loc[(connect['status_name'] == "Confirmed Lead CC") | (connect['status_name'] == "Confirmed_Lead _ QEC_Done") ]
+
+
+# In[107]:
+
+
+success = pd.pivot_table(data = Confirm, index = ['status_name'], values = 'Disposition', aggfunc = np.size, fill_value= 0,margins = True, margins_name = 'Total' )
+
+success['Avg%'] = success['Disposition'] / 267
+success = success.rename(columns = {'status_name': 'Lead_Confirmed'})
+
+success['Avg%'] = pd.Series(["{0:.2f}%".format(val * 100) for val in success['Avg%']], index = success.index)
+
+success
+
+
+# In[108]:
+
+
+
+
+writer = pd.ExcelWriter(r"C:\Users\data anylitics\Desktop\Akshay\Leaggeneration report.xlsx", engine='xlsxwriter')
+
+
+# In[109]:
+
+
+
+
+connect1.to_excel(writer, sheet_name='connect Status')
+Notconnect2.to_excel(writer, sheet_name='Notconnect status')
+StatusCount.to_excel(writer, sheet_name='StatusCount')
+export.to_excel(writer, sheet_name='export')
+Result.to_excel(writer, sheet_name='Dump')
+success.to_excel(writer, sheet_name='success')
+
+
+writer.save()
+
+
+
+# In[110]:
+
+
+#export.to_excel(r'C:\Users\data anylitics\Desktop\Akshay\reporting.xlsx')
+
+
+# In[ ]:
+
+
+
+
