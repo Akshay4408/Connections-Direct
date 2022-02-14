@@ -1,0 +1,466 @@
+#!/usr/bin/env python
+# coding: utf-8
+
+# In[189]:
+
+
+import pandas as pd
+import numpy as np
+
+
+# In[190]:
+
+
+# APR one
+apr1 = pd.read_excel(r"C:\\Users\\data anylitics\\Desktop\\APR\\one.xlsx")
+
+
+apr1 = apr1.iloc[3:]
+#apr1.iloc[:-1,:]
+
+apr1 = apr1.rename(columns=apr1.iloc[0]).drop(apr1.index[0])
+apr1 = apr1.iloc[:-1 , :]
+
+
+apr1.head()
+
+
+# In[191]:
+
+
+apr1.info()
+
+
+# In[192]:
+
+
+# APR two
+apr2 = pd.read_excel(r"C:\\Users\\data anylitics\\Desktop\\APR\\two.xlsx")
+
+apr2 = apr2.iloc[3:]
+#apr2.iloc[:-1,:]
+
+apr2 = apr2.rename(columns=apr2.iloc[0]).drop(apr2.index[0])
+apr2 = apr2.iloc[:-1 , :]
+apr2.head()
+
+
+# In[193]:
+
+
+apr1 = apr1[['USER NAME', 'ID','CALLS','TALK', 'WAIT','PAUSE', 'DISPO']]
+#apr1 = apr1.rename(columns = {'TOTAL' : 'LOGIN'})
+apr1.head()
+
+
+# In[194]:
+
+
+apr2 = apr2.rename(columns = {'LNCH' : 'LUNCH'})
+
+
+# In[195]:
+
+
+apr2 = apr2[['USER NAME', 'TOTAL', 'LUNCH', 'TEA',  'BIO', 'TM']]
+apr2 = apr2.rename(columns = {'TOTAL' : 'Total Login'})
+apr2.head()
+
+
+# In[196]:
+
+
+Result = pd.merge(apr1, apr2, how = 'inner', on = 'USER NAME')
+
+
+# In[197]:
+
+
+from datetime import date
+from datetime import timedelta
+  
+
+
+# In[198]:
+
+
+Result['DATE'] =  date.today()
+#Result['DATE']  =Result['DATE'].dt.strftime("%m/%d/%y")
+Result['DATE']  =  Result['DATE'] - timedelta(days = 1)
+
+
+# In[199]:
+
+
+
+Result['Lminutes'] = pd.to_datetime(Result['LUNCH'], format='%H:%M:%S').dt.minute
+Result['Lsecond'] = pd.to_datetime(Result['LUNCH'], format='%H:%M:%S').dt.second
+
+
+Result['Tminutes'] = pd.to_datetime(Result['TEA'], format='%H:%M:%S').dt.minute
+Result['Tsecond'] = pd.to_datetime(Result['TEA'], format='%H:%M:%S').dt.second
+
+
+Result['Bminutes'] = pd.to_datetime(Result['BIO'], format='%H:%M:%S').dt.minute
+Result['Bsecond'] = pd.to_datetime(Result['BIO'], format='%H:%M:%S').dt.second
+
+
+Result['Lminutes'] = Result['Lminutes'] * 60
+Result['Tminutes'] = Result['Tminutes'] * 60
+Result['Bminutes'] = Result['Bminutes'] * 60
+
+
+
+
+# In[200]:
+
+
+Result['BMinutes'] = Result['Lminutes'] + Result['Tminutes'] + Result['Bminutes'] + Result['Lsecond'] + Result['Tsecond'] + Result['Bsecond']
+
+
+# In[201]:
+
+
+import operator
+fmt = operator.methodcaller('strftime', '%H:%M:%S')
+Result['Net Break'] = pd.to_datetime(Result['BMinutes'], unit='s').map(fmt)
+
+
+# In[202]:
+
+
+Result.head()
+
+
+# In[203]:
+
+
+Result = Result.drop(['Lminutes', 'Tminutes', 'Bminutes'], axis = 1)
+
+
+# In[204]:
+
+
+Result['TMhours'] = pd.to_datetime(Result['TM'], format='%H:%M:%S').dt.hour
+
+Result['TMminutes'] = pd.to_datetime(Result['TM'], format='%H:%M:%S').dt.minute
+
+Result['TMsecond'] = pd.to_datetime(Result['TM'], format='%H:%M:%S').dt.second
+
+
+
+Result['TMhours'] = Result['TMhours'] * 3600
+
+Result['TMminutes'] = Result['TMminutes'] * 60
+
+
+
+# In[205]:
+
+
+Result['TMT'] = Result['TMhours'] + Result['TMminutes'] + Result['TMsecond']
+
+
+# In[206]:
+
+
+Result['Phours'] = pd.to_datetime(Result['PAUSE'], format='%H:%M:%S').dt.hour
+
+Result['Pminutes'] = pd.to_datetime(Result['PAUSE'], format='%H:%M:%S').dt.minute
+
+Result['Psecond'] = pd.to_datetime(Result['PAUSE'], format='%H:%M:%S').dt.second
+
+
+Result['Phours'] = Result['Phours'] * 3600
+Result['Pminutes'] = Result['Pminutes'] * 60
+
+
+
+
+Result['Ptime'] = Result['Phours'] + Result['Pminutes'] + Result['Psecond']
+
+Result['Ptime'] = Result['Ptime'] -  Result['TMT']
+#Result['TLtime'] = Result['TLtime'].astype(float) 
+
+#Result['TLtime'] = Result['TLtime'] 
+
+
+# In[207]:
+
+
+import operator
+fmt = operator.methodcaller('strftime', '%H:%M:%S')
+Result['Actual Puse'] = pd.to_datetime(Result['Ptime'], unit='s').map(fmt)
+
+
+# In[208]:
+
+
+Result.head()
+
+
+# In[209]:
+
+
+Result = Result.drop(['TMhours', 'TMminutes', 'Phours', 'Pminutes', 'BMinutes'], axis = 1)
+
+
+# In[210]:
+
+
+Result['TKhours'] = pd.to_datetime(Result['TALK'], format='%H:%M:%S').dt.hour
+
+Result['TKPminutes'] = pd.to_datetime(Result['TALK'], format='%H:%M:%S').dt.minute
+
+Result['TKPseconds'] = pd.to_datetime(Result['TALK'], format='%H:%M:%S').dt.second
+
+Result['TKhours'] = Result['TKhours'] * 3600
+Result['TKPminutes'] = Result['TKPminutes'] * 60
+
+
+Result['TKhours']  = Result['TKhours']  + Result['TKPminutes'] + Result['TKPseconds'] 
+
+
+# In[211]:
+
+
+Result['WThours'] = pd.to_datetime(Result['WAIT'], format='%H:%M:%S').dt.hour
+
+Result['WTPminutes'] = pd.to_datetime(Result['WAIT'], format='%H:%M:%S').dt.minute
+
+Result['WTPsecond'] = pd.to_datetime(Result['WAIT'], format='%H:%M:%S').dt.second
+
+Result['WThours'] = Result['WThours'] * 3600
+
+Result['WTPminutes'] = Result['WTPminutes'] * 60
+
+Result['WThours']  = Result['WThours']  + Result['WTPminutes'] + Result['WTPsecond']
+
+
+# In[212]:
+
+
+Result['DThours'] = pd.to_datetime(Result['DISPO'], format='%H:%M:%S').dt.hour
+
+Result['DTPminutes'] = pd.to_datetime(Result['DISPO'], format='%H:%M:%S').dt.minute
+
+Result['DTPsecond'] = pd.to_datetime(Result['DISPO'], format='%H:%M:%S').dt.second
+
+
+Result['DThours'] = Result['DThours'] * 3600
+
+Result['DTPminutes'] = Result['DTPminutes'] * 60
+
+
+
+Result['DThours']  = Result['DThours']  + Result['DTPminutes'] + Result['DTPsecond'] 
+
+
+# In[213]:
+
+
+Result['PL'] =  Result['DThours'] + Result['WThours'] + Result['TMT'] + Result['Ptime'] + Result['TKhours'] + Result['TMT']
+ 
+
+
+# In[214]:
+
+
+import operator
+fmt = operator.methodcaller('strftime', '%H:%M:%S')
+Result['Productice Login'] = pd.to_datetime(Result['PL'], unit='s').map(fmt)
+
+
+# In[215]:
+
+
+#Result['TTL'] =  Result['DThours'] + Result['WThours'] + Result['TMT'] + Result['Ptime'] + Result['TKhours'] + Result['TMT'] + Result['BMinutes']
+ 
+
+
+# In[216]:
+
+
+#import operator
+#fmt = operator.methodcaller('strftime', '%H:%M:%S')
+#Result['Total Login'] = pd.to_datetime(Result['TTL'], unit='s').map(fmt)
+
+
+# In[217]:
+
+
+Result.head()
+
+
+# In[218]:
+
+
+Result = Result.drop(['TKhours', 'TKPminutes', 'WThours', 'WTPminutes', 'DThours', 'DTPminutes',  'Ptime', 'TMT'], axis = 1)
+
+
+# In[219]:
+
+
+Result.loc[(Result.PL > 28800),'PL']= 28800
+
+
+# In[220]:
+
+
+import operator
+fmt = operator.methodcaller('strftime', '%H:%M:%S')
+Result['Capping'] = pd.to_datetime(Result['PL'], unit='s').map(fmt)
+
+
+# In[221]:
+
+
+Result = Result.drop(['PL'], axis = 1)
+
+
+# In[222]:
+
+
+Result = Result[['DATE', 'USER NAME', 'ID', 'CALLS', 'TALK', 'WAIT','DISPO', 'TM','LUNCH', 'TEA', 'BIO',  'Net Break',  'PAUSE', 'Actual Puse', 'Productice Login', 'Capping']]
+
+
+# In[223]:
+
+
+Result.head()
+
+
+# In[224]:
+
+
+Result['PDhours'] = pd.to_datetime(Result['Productice Login'], format='%H:%M:%S').dt.hour
+
+Result['PDminutes'] = pd.to_datetime(Result['Productice Login'], format='%H:%M:%S').dt.minute
+
+Result['PDsecond'] = pd.to_datetime(Result['Productice Login'], format='%H:%M:%S').dt.second
+
+
+Result['PDhours'] = Result['PDhours'] * 3600
+
+Result['PDminutes'] = Result['PDminutes'] * 60
+
+
+
+Result['PDL']  = Result['PDhours']  + Result['PDminutes'] + Result['PDsecond'] 
+
+
+# In[225]:
+
+
+Result['NBhours'] = pd.to_datetime(Result['Net Break'], format='%H:%M:%S').dt.hour
+
+Result['NBminutes'] = pd.to_datetime(Result['Net Break'], format='%H:%M:%S').dt.minute
+
+Result['NBsecond'] = pd.to_datetime(Result['Net Break'], format='%H:%M:%S').dt.second
+
+
+Result['NBhours'] = Result['NBhours'] * 3600
+
+Result['NBminutes'] = Result['NBminutes'] * 60
+
+
+
+Result['NBL']  = Result['NBhours']  + Result['NBminutes'] + Result['NBsecond'] 
+
+
+# In[226]:
+
+
+
+
+Result['TLG'] = Result['PDL']  + Result['NBL'] 
+
+
+# In[227]:
+
+
+import operator
+fmt = operator.methodcaller('strftime', '%H:%M:%S')
+Result['Total Login'] = pd.to_datetime(Result['TLG'], unit='s').map(fmt)
+
+
+# In[228]:
+
+
+import operator
+fmt = operator.methodcaller('strftime', '%H:%M:%S')
+Result['Net Break'] = pd.to_datetime(Result['NBL'], unit='s').map(fmt)
+
+
+# In[229]:
+
+
+import operator
+fmt = operator.methodcaller('strftime', '%H:%M:%S')
+Result['Productive Login'] = pd.to_datetime(Result['PDL'], unit='s').map(fmt)
+
+
+# In[230]:
+
+
+Result.info()
+
+
+# In[231]:
+
+
+Result = Result.drop(['PDhours', 'PDminutes', 'PDsecond', 'PDL', 'NBhours', 'NBminutes', 'NBsecond', 'NBL', 'TLG'], axis = 1)
+
+
+# In[232]:
+
+
+Result = Result[['DATE', 'USER NAME', 'ID', 'Total Login', 'CALLS', 'TALK', 'WAIT', 'DISPO', 'TM', 'LUNCH', 'TEA', 'BIO', 'Net Break', 'PAUSE', 'Actual Puse', 'Productice Login' , 'Capping']]
+
+
+# In[233]:
+
+
+Result['QAFEED'] = 0
+Result['SYSDOW'] = 0
+
+
+# In[234]:
+
+
+import operator
+fmt = operator.methodcaller('strftime', '%H:%M:%S')
+Result['QAFEED'] = pd.to_datetime(Result['QAFEED'], unit='s').map(fmt)
+
+Result['SYSDOW'] = pd.to_datetime(Result['SYSDOW'], unit='s').map(fmt)
+
+
+# In[235]:
+
+
+Result = Result.rename(columns = {'WAIT' : 'Ideal'})
+
+
+# In[236]:
+
+
+Result = Result[['DATE', 'USER NAME', 'ID', 'Total Login', 'CALLS', 'TALK',  'DISPO', 'TM', 'LUNCH', 'TEA', 'BIO', 'QAFEED','SYSDOW','Ideal','Net Break', 'PAUSE', 'Actual Puse', 'Productice Login' , 'Capping']]
+
+
+# In[237]:
+
+
+Result.head()
+
+
+# In[238]:
+
+
+Result.to_excel(r'C:\Users\data anylitics\Desktop\Akshay\\Report.xlsx')
+
+
+# In[ ]:
+
+
+
+
